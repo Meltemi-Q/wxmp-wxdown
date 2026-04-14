@@ -5,7 +5,8 @@ description: |
   搜索公众号、查看文章列表、下载文章内容、管理关注列表、获取扫码二维码。
   触发条件：用户提到搜索公众号、公众号文章、最新文章、文章列表、关注公众号、
   取消关注、下载文章、公众号状态、扫码、二维码、竞品文章等关键词时触发。
-  **重要：所有操作通过本地 CLI 脚本 wxdown-manage.py 完成，不要尝试访问 Web UI 或抓取网页。**
+  **重要：所有操作通过本地 CLI 脚本完成，不要尝试访问 Web UI 或抓取网页。**
+  **新增（2026-04-13）：支持下载完整渲染版（含图片下载 + 渐变背景壳），见「下载文章完整渲染版」章节。**
 ---
 
 # wxdown 公众号管理
@@ -17,12 +18,12 @@ description: |
 
 ### 查看系统状态（含登录状态）
 ```bash
-python3 scripts/wxdown-manage.py status
+python3 /root/.openclaw/skills/wxmp-wxdown/scripts/wxdown-manage.py status
 ```
 
 ### 扫码登录
 ```bash
-python3 scripts/wxdown-manage.py login
+python3 /root/.openclaw/skills/wxmp-wxdown/scripts/wxdown-manage.py login
 ```
 如果输出包含 QR 码图片（markdown 格式 `![wxdown QR](/root/.openclaw/workspace/wxdown_qr_latest.png)`），
 **必须在回复中原样包含该 markdown 图片语法，使用完整绝对路径，不要用 ~ 开头**。
@@ -31,51 +32,78 @@ python3 scripts/wxdown-manage.py login
 ### 登录异常 / 一直让扫码 / 日报发不了
 先运行：
 ```bash
-python3 scripts/wxdown-manage.py status
+python3 /root/.openclaw/skills/wxmp-wxdown/scripts/wxdown-manage.py status
 ```
 只有 `status` 明确显示未登录/已过期，才继续运行 `login` 生成二维码。
 如果 `status` 显示有效，就不要重复发二维码，继续排查文章抓取或日报脚本。
 
 ### 搜索公众号
 ```bash
-python3 scripts/wxdown-manage.py search "关键词"
-python3 scripts/wxdown-manage.py search "量子位" --size 5
+python3 /root/.openclaw/skills/wxmp-wxdown/scripts/wxdown-manage.py search "关键词"
+python3 /root/.openclaw/skills/wxmp-wxdown/scripts/wxdown-manage.py search "量子位" --size 5
 ```
 
 ### 获取文章列表
 ```bash
-python3 scripts/wxdown-manage.py articles <fakeid>
-python3 scripts/wxdown-manage.py articles <fakeid> --size 20
-python3 scripts/wxdown-manage.py articles <fakeid> --keyword "AI"
+python3 /root/.openclaw/skills/wxmp-wxdown/scripts/wxdown-manage.py articles <fakeid>
+python3 /root/.openclaw/skills/wxmp-wxdown/scripts/wxdown-manage.py articles <fakeid> --size 20
+python3 /root/.openclaw/skills/wxmp-wxdown/scripts/wxdown-manage.py articles <fakeid> --keyword "AI"
 ```
 
-### 下载文章内容
+### 下载文章内容（裸版）
 ```bash
-python3 scripts/wxdown-manage.py download "https://mp.weixin.qq.com/s/xxx" --format md
+python3 /root/.openclaw/skills/wxmp-wxdown/scripts/wxdown-manage.py download "https://mp.weixin.qq.com/s/xxx" --format md
 ```
 支持格式：md (markdown)、html、text
 
+### 下载文章完整渲染版（含图片 + 渐变背景壳）
+```bash
+python3 /root/.openclaw/skills/wxmp-wxdown/scripts/download-wxmp-rendered.py <url> [output-name]
+```
+**流程：**
+1. wxdown 下载正文 HTML
+2. 提取 mmbiz 图片 URL，下载到 `wxmp-studio/uploads/`
+3. 替换 `data-src` → 本地路径，图片正常显示
+4. 包渐变背景壳 + 样式隔离（img/div/section 约束）
+5. 输出到 `http://wxmp.meltemi.fun/uploads/<output-name>.html`
+
+**示例：**
+```bash
+python3 /root/.openclaw/skills/wxmp-wxdown/scripts/download-wxmp-rendered.py \
+  "https://mp.weixin.qq.com/s/8vnHFZnQDUy-aC9XM8qP7Q" sbti-test
+# 访问: http://wxmp.meltemi.fun/uploads/sbti-test.html
+```
+
+**适用场景：**
+- 需要看文章最终渲染效果（配渐变背景、紫色主题）
+- 图片在微信内有 referer 限制，裸 HTML 里 `data-src` 直接用会显示不出来
+- 渐变背景依赖 `.container { background: #fff }` 覆盖 wxdown 原始样式，需要隔离
+
+**已知限制：**
+- 脚本里图片名用 `basename-imgN.ext` 格式，避免 URL 编码问题
+- wxmp-studio uploads 目录：`/root/.openclaw/workspace/projects/wxmp-studio/uploads/`
+
 ### 公众号详情
 ```bash
-python3 scripts/wxdown-manage.py info <fakeid>
+python3 /root/.openclaw/skills/wxmp-wxdown/scripts/wxdown-manage.py info <fakeid>
 ```
 
 ### 关注管理（本地关注列表）
 ```bash
-python3 scripts/wxdown-manage.py follow "量子位" MjM5MjAxNDM4MA==
-python3 scripts/wxdown-manage.py unfollow MjM5MjAxNDM4MA==
-python3 scripts/wxdown-manage.py follows
+python3 /root/.openclaw/skills/wxmp-wxdown/scripts/wxdown-manage.py follow "量子位" MjM5MjAxNDM4MA==
+python3 /root/.openclaw/skills/wxmp-wxdown/scripts/wxdown-manage.py unfollow MjM5MjAxNDM4MA==
+python3 /root/.openclaw/skills/wxmp-wxdown/scripts/wxdown-manage.py follows
 ```
 
 ### 查看所有关注号的最新文章
 ```bash
-python3 scripts/wxdown-manage.py latest
-python3 scripts/wxdown-manage.py latest --size 3
+python3 /root/.openclaw/skills/wxmp-wxdown/scripts/wxdown-manage.py latest
+python3 /root/.openclaw/skills/wxmp-wxdown/scripts/wxdown-manage.py latest --size 3
 ```
 
 ### 退出登录
 ```bash
-python3 scripts/wxdown-manage.py logout
+python3 /root/.openclaw/skills/wxmp-wxdown/scripts/wxdown-manage.py logout
 ```
 
 ## 登录过期处理
@@ -92,13 +120,13 @@ python3 scripts/wxdown-manage.py logout
 
 ## 使用示例
 
-用户说「搜索公众号 量子位」→ 运行 `python3 scripts/wxdown-manage.py search "量子位"`
-用户说「量子位最新文章」→ 先查 follows 找到 fakeid → 运行 `python3 scripts/wxdown-manage.py articles <fakeid>`
-用户说「关注量子位」→ 先 search 找到 fakeid → 运行 `python3 scripts/wxdown-manage.py follow "量子位" <fakeid>`
-用户说「我关注了哪些号」→ 运行 `python3 scripts/wxdown-manage.py follows`
-用户说「最新文章」→ 运行 `python3 scripts/wxdown-manage.py latest`
-用户说「状态」「登录异常」「登不上」「一直让我扫码」「日报发不了」→ 先运行 `python3 scripts/wxdown-manage.py status`
-用户明确要二维码，且 `status` 已显示未登录/已过期 → 运行 `python3 scripts/wxdown-manage.py login`
+用户说「搜索公众号 量子位」→ 运行 `python3 /root/.openclaw/skills/wxmp-wxdown/scripts/wxdown-manage.py search "量子位"`
+用户说「量子位最新文章」→ 先查 follows 找到 fakeid → 运行 `python3 /root/.openclaw/skills/wxmp-wxdown/scripts/wxdown-manage.py articles <fakeid>`
+用户说「关注量子位」→ 先 search 找到 fakeid → 运行 `python3 /root/.openclaw/skills/wxmp-wxdown/scripts/wxdown-manage.py follow "量子位" <fakeid>`
+用户说「我关注了哪些号」→ 运行 `python3 /root/.openclaw/skills/wxmp-wxdown/scripts/wxdown-manage.py follows`
+用户说「最新文章」→ 运行 `python3 /root/.openclaw/skills/wxmp-wxdown/scripts/wxdown-manage.py latest`
+用户说「状态」「登录异常」「登不上」「一直让我扫码」「日报发不了」→ 先运行 `python3 /root/.openclaw/skills/wxmp-wxdown/scripts/wxdown-manage.py status`
+用户明确要二维码，且 `status` 已显示未登录/已过期 → 运行 `python3 /root/.openclaw/skills/wxmp-wxdown/scripts/wxdown-manage.py login`
 
 ## 与 WeRSS 的区别
 
