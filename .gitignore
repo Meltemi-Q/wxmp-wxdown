@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.auth-key
+.pending-login-state.json
+.pending-login-watch.pid
+*.png
